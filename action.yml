@@ -10,9 +10,9 @@ inputs:
     required: false
     description: 'Additional TSC flags'
     default: '--noEmit --incremental false'
-  skip-comment:
+  comment:
     required: false
-    description: 'Skip posting a comment on your PR'
+    description: 'Indicates whether the action should leave a comment on a PR. Enabling this requires providing github-token'
     default: false
   github-token:
     required: false
