@@ -1,11 +1,22 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'TSC Diagnostics Diff'
+description: 'Compare TypeScript Compiler Performance'
+author: 'Aleksandra Sikora'
 inputs:
-  milliseconds: # change this
-    required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  base-branch:
+    required: false
+    description: 'Base branch to perform TSC benchmark against'
+    default: 'main'
+  flags:
+    required: false
+    description: 'Additional TSC flags'
+    default: '--noEmit --incremental false'
+  skip-comment:
+    required: false
+    description: 'Skip posting a comment on your PR'
+    default: false
+  github-token:
+    required: false
+    description: 'GitHub API token to leave comments on your PRs'
 runs:
   using: 'node16'
   main: 'dist/index.js'

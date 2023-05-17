@@ -1,8 +1,8 @@
 {
-  "name": "typescript-action",
-  "version": "0.0.0",
+  "name": "ts-diagnostics-diff-action",
+  "version": "0.0.1",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "TypeScript extendedDiagnostics diff action",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -19,13 +19,20 @@
   },
   "keywords": [
     "actions",
-    "node",
-    "setup"
+    "performance",
+    "typescript",
+    "diagnostics"
   ],
-  "author": "",
+  "author": {
+    "name": "Aleksandra Sikora",
+    "url": "https://github.com/beerose",
+    "email": "alexsandra.sikora@gmail.com"
+  },
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.10.0"
+    "@actions/core": "^1.10.0",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^5.1.1"
   },
   "devDependencies": {
     "@types/node": "^18.16.3",

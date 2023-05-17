@@ -1,5 +1,5 @@
-name: 'build-test'
-on: # rebuild any PRs and main branch changes
+name: 'action-test'
+on:
   pull_request:
   push:
     branches:
@@ -15,10 +15,12 @@ jobs:
           npm install
       - run: |
           npm run all
-  test: # make sure the action works on a clean machine without building
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./
         with:
           milliseconds: 1000
+          skip-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
