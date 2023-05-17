@@ -239,7 +239,7 @@ function run() {
         try {
             const newResult = cp.execSync(`yarn tsc ${flags} --extendedDiagnostics`);
             yield git.cmd([], 'checkout', baseBranch);
-            const previousResult = cp.execSync('tsc ${flags} --extendedDiagnostics');
+            const previousResult = cp.execSync('yarn tsc ${flags} --extendedDiagnostics');
             const diff = compareDiagnostics(newResult.toString(), previousResult.toString(), treshold);
             core.info(diff);
             if (comment) {
