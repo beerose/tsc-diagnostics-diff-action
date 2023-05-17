@@ -22,5 +22,5 @@ jobs:
       - uses: ./
         with:
           milliseconds: 1000
-          skip-comment: true
+          comment: true
           github-token: ${{ secrets.GITHUB_TOKEN }}

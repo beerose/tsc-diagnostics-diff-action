@@ -6,7 +6,7 @@ import * as git from './git'
 export async function run(): Promise<void> {
   core.info('Starting...')
 
-  const skipComment = core.getInput('skip-comment') === 'true'
+  const comment = core.getInput('leave-comment') === 'true'
   const baseBranch = core.getInput('base-branch') || 'main'
   const flags = core.getInput('flags') || '--noEmit --incremental false'
   const treshold = parseInt(core.getInput('treshold')) || 300 // ms
@@ -26,7 +26,7 @@ export async function run(): Promise<void> {
     )
 
     core.info(diff)
-    if (!skipComment) {
+    if (comment) {
       if (!githubToken) {
         throw new Error(
           `'github-token' is not set. Please give API token to send commit comment`
