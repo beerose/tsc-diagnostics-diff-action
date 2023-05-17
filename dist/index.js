@@ -235,12 +235,13 @@ function run() {
         const baseBranch = core.getInput('base-branch') || 'main';
         const flags = core.getInput('flags') || '--noEmit --incremental false';
         const treshold = parseInt(core.getInput('treshold')) || 300; // ms
+        const customCommand = core.getInput('custom-command') || undefined;
         const githubToken = core.getInput('github-token') || undefined;
         try {
-            const bin = cp.execSync('yarn bin').toString().trim();
-            const newResult = cp.execSync(`${bin}/tsc ${flags} --extendedDiagnostics`);
+            const tsc = `${cp.execSync('yarn bin').toString().trim()}/tsc`;
+            const newResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`);
             yield git.cmd([], 'checkout', baseBranch);
-            const previousResult = cp.execSync(`${bin}/tsc ${flags} --extendedDiagnostics`);
+            const previousResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`);
             const diff = compareDiagnostics(newResult.toString(), previousResult.toString(), treshold);
             core.info(diff);
             if (comment) {

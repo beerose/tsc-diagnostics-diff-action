@@ -10,16 +10,19 @@ export async function run(): Promise<void> {
   const baseBranch = core.getInput('base-branch') || 'main'
   const flags = core.getInput('flags') || '--noEmit --incremental false'
   const treshold = parseInt(core.getInput('treshold')) || 300 // ms
+  const customCommand = core.getInput('custom-command') || undefined
   const githubToken: string | undefined =
     core.getInput('github-token') || undefined
 
   try {
-    const bin = cp.execSync('yarn bin').toString().trim()
-    const newResult = cp.execSync(`${bin}/tsc ${flags} --extendedDiagnostics`)
+    const tsc = `${cp.execSync('yarn bin').toString().trim()}/tsc`
+    const newResult = cp.execSync(
+      `${customCommand ?? tsc} ${flags} --extendedDiagnostics`
+    )
 
     await git.cmd([], 'checkout', baseBranch)
     const previousResult = cp.execSync(
-      `${bin}/tsc ${flags} --extendedDiagnostics`
+      `${customCommand ?? tsc} ${flags} --extendedDiagnostics`
     )
 
     const diff = compareDiagnostics(
