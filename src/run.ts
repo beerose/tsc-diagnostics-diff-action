@@ -14,10 +14,13 @@ export async function run(): Promise<void> {
     core.getInput('github-token') || undefined
 
   try {
-    const newResult = cp.execSync(`npx tsc ${flags} --extendedDiagnostics`)
+    const bin = cp.execSync('yarn bin').toString().trim()
+    const newResult = cp.execSync(`${bin}/tsc ${flags} --extendedDiagnostics`)
 
     await git.cmd([], 'checkout', baseBranch)
-    const previousResult = cp.execSync('npx tsc ${flags} --extendedDiagnostics')
+    const previousResult = cp.execSync(
+      `${bin}/tsc ${flags} --extendedDiagnostics`
+    )
 
     const diff = compareDiagnostics(
       newResult.toString(),

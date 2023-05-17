@@ -237,9 +237,10 @@ function run() {
         const treshold = parseInt(core.getInput('treshold')) || 300; // ms
         const githubToken = core.getInput('github-token') || undefined;
         try {
-            const newResult = cp.execSync(`npx tsc ${flags} --extendedDiagnostics`);
+            const bin = cp.execSync('yarn bin').toString().trim();
+            const newResult = cp.execSync(`${bin}/tsc ${flags} --extendedDiagnostics`);
             yield git.cmd([], 'checkout', baseBranch);
-            const previousResult = cp.execSync('npx tsc ${flags} --extendedDiagnostics');
+            const previousResult = cp.execSync(`${bin}/tsc ${flags} --extendedDiagnostics`);
             const diff = compareDiagnostics(newResult.toString(), previousResult.toString(), treshold);
             core.info(diff);
             if (comment) {

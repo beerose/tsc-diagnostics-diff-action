@@ -10,6 +10,10 @@ inputs:
     required: false
     description: 'Additional TSC flags'
     default: '--noEmit --incremental false'
+  custom-command:
+    required: false
+    description: 'Allows to override the default type check command. E.g.: yarn typecheck'
+    default: 'npx tsc'
   comment:
     required: false
     description: 'Indicates whether the action should leave a comment on a PR. Enabling this requires providing github-token'
