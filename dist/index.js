@@ -231,7 +231,7 @@ const git = __importStar(__nccwpck_require__(3374));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting...');
-        const comment = core.getInput('leave-comment') === 'true';
+        const comment = core.getInput('comment') === 'true';
         const baseBranch = core.getInput('base-branch') || 'main';
         const flags = core.getInput('flags') || '--noEmit --incremental false';
         const treshold = parseInt(core.getInput('treshold')) || 300; // ms
@@ -239,10 +239,14 @@ function run() {
         const githubToken = core.getInput('github-token') || undefined;
         try {
             const tsc = `${cp.execSync('yarn bin').toString().trim()}/tsc`;
-            const newResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`);
+            const newResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`, {
+                stdio: 'pipe'
+            });
             yield git.fetch(githubToken, baseBranch);
             yield git.cmd([], 'checkout', baseBranch);
-            const previousResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`);
+            const previousResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`, {
+                stdio: 'pipe'
+            });
             const diff = compareDiagnostics(newResult.toString(), previousResult.toString(), treshold);
             core.info(diff);
             if (comment) {

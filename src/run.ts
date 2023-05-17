@@ -6,7 +6,7 @@ import * as git from './git'
 export async function run(): Promise<void> {
   core.info('Starting...')
 
-  const comment = core.getInput('leave-comment') === 'true'
+  const comment = core.getInput('comment') === 'true'
   const baseBranch = core.getInput('base-branch') || 'main'
   const flags = core.getInput('flags') || '--noEmit --incremental false'
   const treshold = parseInt(core.getInput('treshold')) || 300 // ms
@@ -18,13 +18,19 @@ export async function run(): Promise<void> {
     const tsc = `${cp.execSync('yarn bin').toString().trim()}/tsc`
 
     const newResult = cp.execSync(
-      `${customCommand ?? tsc} ${flags} --extendedDiagnostics`
+      `${customCommand ?? tsc} ${flags} --extendedDiagnostics`,
+      {
+        stdio: 'pipe'
+      }
     )
 
     await git.fetch(githubToken, baseBranch)
     await git.cmd([], 'checkout', baseBranch)
     const previousResult = cp.execSync(
-      `${customCommand ?? tsc} ${flags} --extendedDiagnostics`
+      `${customCommand ?? tsc} ${flags} --extendedDiagnostics`,
+      {
+        stdio: 'pipe'
+      }
     )
 
     const diff = compareDiagnostics(
