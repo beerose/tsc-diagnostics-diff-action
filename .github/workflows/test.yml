@@ -16,10 +16,7 @@ jobs:
           node-version: 16.x
       - run: |
           npm install
-      - run: |
-          npm run build
 
-      - uses: actions/checkout@v3
       - uses: ./
         with:
           custom-command: npm run typecheck
