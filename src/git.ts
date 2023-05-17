@@ -65,7 +65,7 @@ export async function cmd(
   const userArgs = [
     ...additionalGitOptions,
     '-c',
-    'user.name=github-action-benchmark',
+    'user.name=github-action-tsc-diff',
     '-c',
     'user.email=github@users.noreply.github.com',
     '-c',

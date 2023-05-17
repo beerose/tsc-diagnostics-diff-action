@@ -21,6 +21,7 @@ export async function run(): Promise<void> {
       `${customCommand ?? tsc} ${flags} --extendedDiagnostics`
     )
 
+    await git.fetch(githubToken, baseBranch)
     await git.cmd([], 'checkout', baseBranch)
     const previousResult = cp.execSync(
       `${customCommand ?? tsc} ${flags} --extendedDiagnostics`

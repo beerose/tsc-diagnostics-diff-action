@@ -97,7 +97,7 @@ function cmd(additionalGitOptions, ...args) {
         const userArgs = [
             ...additionalGitOptions,
             '-c',
-            'user.name=github-action-benchmark',
+            'user.name=github-action-tsc-diff',
             '-c',
             'user.email=github@users.noreply.github.com',
             '-c',
@@ -240,6 +240,7 @@ function run() {
         try {
             const tsc = `${cp.execSync('yarn bin').toString().trim()}/tsc`;
             const newResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`);
+            yield git.fetch(githubToken, baseBranch);
             yield git.cmd([], 'checkout', baseBranch);
             const previousResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`);
             const diff = compareDiagnostics(newResult.toString(), previousResult.toString(), treshold);
