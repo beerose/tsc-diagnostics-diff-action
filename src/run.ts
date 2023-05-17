@@ -16,6 +16,7 @@ export async function run(): Promise<void> {
 
   try {
     const tsc = `${cp.execSync('yarn bin').toString().trim()}/tsc`
+
     const newResult = cp.execSync(
       `${customCommand ?? tsc} ${flags} --extendedDiagnostics`
     )
