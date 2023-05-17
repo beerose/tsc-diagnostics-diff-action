@@ -14,7 +14,7 @@ export async function run(): Promise<void> {
     core.getInput('github-token') || undefined
 
   try {
-    const newResult = cp.execSync(`tsc ${flags} --extendedDiagnostics`)
+    const newResult = cp.execSync(`npm run tsc ${flags} --extendedDiagnostics`)
 
     await git.cmd([], 'checkout', baseBranch)
     const previousResult = cp.execSync('tsc ${flags} --extendedDiagnostics')
