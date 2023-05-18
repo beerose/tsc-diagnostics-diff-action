@@ -21,3 +21,10 @@ jobs:
         with:
           leave-comment: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./
+        with:
+          leave-comment: true
+          custom-command: npm run typecheck
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          extended: true

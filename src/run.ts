@@ -55,9 +55,10 @@ export async function run(): Promise<void> {
     const previousResult = await exec.getExecOutput(command)
 
     const diff = compareDiagnostics(
-      newResult.stdout,
       previousResult.stdout,
-      treshold
+      newResult.stdout,
+      treshold,
+      extended
     )
 
     core.info(diff)
@@ -67,7 +68,7 @@ export async function run(): Promise<void> {
           `'github-token' is not set. Please give API token to send commit comment`
         )
       }
-      await leaveComment(diff, githubToken)
+      await leaveComment(diff, githubToken, extended)
     }
 
     core.info('Finished!')
@@ -99,7 +100,7 @@ const getCurrentPRID = () => {
   return pr.number
 }
 
-const leaveComment = async (body: string, token: string) => {
+const leaveComment = async (body: string, token: string, extended = false) => {
   const repoMetadata = getCurrentRepoMetadata()
   const client = github.getOctokit(token)
   const {data: comments} = await client.rest.issues.listComments({
@@ -109,7 +110,11 @@ const leaveComment = async (body: string, token: string) => {
   })
 
   const previousComment = comments.find(c => {
-    return c.body?.includes('Diagnostics Comparison')
+    return c.body?.includes(
+      extended
+        ? '## Extended Diagnostics Comparison'
+        : '## Diagnostics Comparison'
+    )
   })
 
   if (previousComment) {
@@ -176,13 +181,14 @@ function parseDiagnostics(input: string): Diagnostics {
 function compareDiagnostics(
   prev: string,
   current: string,
-  threshold: number
+  threshold: number,
+  extended = false
 ): string {
   const previousDiagnostics = parseDiagnostics(prev)
   const currentDiagnostics = parseDiagnostics(current)
   core.debug(JSON.stringify(currentDiagnostics))
 
-  let markdown = '## Diagnostics Comparison:\n\n'
+  let markdown = `## ${extended ? 'Extended' : ''} Diagnostics Comparison:\n\n`
   markdown += `<details><summary>Click to expand</summary>\n\n`
   markdown += '| Metric | Previous | New | Status |\n'
   markdown += '| --- | --- | --- | --- |\n'
