@@ -247,6 +247,7 @@ function run() {
             const previousResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`, {
                 stdio: 'pipe'
             });
+            core.debug(`${previousResult}, ${newResult}`);
             const diff = compareDiagnostics(newResult.toString(), previousResult.toString(), treshold);
             core.info(diff);
             if (comment) {
@@ -311,6 +312,7 @@ function parseDiagnostics(input) {
 function compareDiagnostics(first, second, threshold) {
     const firstDiagnostics = parseDiagnostics(first);
     const secondDiagnostics = parseDiagnostics(second);
+    core.debug(`${firstDiagnostics}, ${secondDiagnostics}`);
     let markdown = '## Comparing Diagnostics:\n\n';
     markdown += '| Metric | Difference | Status |\n';
     markdown += '| --- | --- | --- |\n';

@@ -26,12 +26,16 @@ export async function run(): Promise<void> {
 
     await git.fetch(githubToken, baseBranch)
     await git.cmd([], 'checkout', baseBranch)
+
+    // should run install
     const previousResult = cp.execSync(
       `${customCommand ?? tsc} ${flags} --extendedDiagnostics`,
       {
         stdio: 'pipe'
       }
     )
+
+    core.debug(`${previousResult}, ${newResult}`)
 
     const diff = compareDiagnostics(
       newResult.toString(),
@@ -120,6 +124,8 @@ function compareDiagnostics(
 ): string {
   const firstDiagnostics = parseDiagnostics(first)
   const secondDiagnostics = parseDiagnostics(second)
+
+  core.debug(`${firstDiagnostics}, ${secondDiagnostics}`)
 
   let markdown = '## Comparing Diagnostics:\n\n'
   markdown += '| Metric | Difference | Status |\n'
