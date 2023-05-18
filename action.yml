@@ -4,23 +4,22 @@ author: 'Aleksandra Sikora'
 inputs:
   base-branch:
     required: false
-    description: 'Base branch to perform TSC benchmark against'
+    description: 'Branch that the actions should use to compare TSC performance'
     default: 'main'
-  flags:
-    required: false
-    description: 'Additional TSC flags'
-    default: '--noEmit --incremental false'
   custom-command:
     required: false
-    description: 'Allows to override the default type check command. E.g.: yarn typecheck'
-    default: 'npx tsc'
-  comment:
+    description: 'Allows to override the default type check command. Example: yarn typecheck. Your custom commant should print either --diagnostics or --extendedDiagnostics output'
+  leave-comment:
     required: false
-    description: 'Indicates whether the action should leave a comment on a PR. Enabling this requires providing github-token'
+    description: 'Indicates whether the action should leave a comment on a PR. Enabling this requires providing the github-token input'
     default: false
   github-token:
     required: false
-    description: 'GitHub API token to leave comments on your PRs'
+    description: 'GitHub API token. Neccessary to leave comments on your PRs'
+  extended:
+    required: false
+    description: 'Indicates whether the actions should use --extendedDiagnostics over --diagnostics'
+    default: false
 runs:
   using: 'node16'
   main: 'dist/index.js'

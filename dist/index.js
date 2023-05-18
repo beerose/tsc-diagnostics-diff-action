@@ -232,10 +232,11 @@ const detect_package_manager_1 = __nccwpck_require__(7756);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting...');
-        const comment = core.getInput('comment') === 'true';
         const baseBranch = core.getInput('base-branch') || 'main';
         const treshold = parseInt(core.getInput('treshold')) || 300; // ms
         const customCommand = core.getInput('custom-command') || undefined;
+        const extended = core.getInput('extended') === 'true';
+        const shouldLeaveComment = core.getInput('leave-comment') === 'true';
         const githubToken = core.getInput('github-token') || undefined;
         try {
             const bin = (yield exec.getExecOutput('yarn bin')).stdout.trim();
@@ -243,7 +244,7 @@ function run() {
             core.debug(`tsc: ${tsc}, bin: ${bin}`);
             const command = customCommand
                 ? customCommand
-                : `${tsc} --noEmit --extendedDiagnostics --incremental false`;
+                : `${tsc} ${extended ? '--extendedDiagnostics' : '--diagnostics'} --incremental false`;
             const newResult = yield exec.getExecOutput(command);
             if (!newResult.stdout.includes('Check time') && customCommand) {
                 throw new Error(`Custom command '${customCommand}' does not output '--extendedDiagnostics' or '--diagnostics' flag. Please add it to your command.`);
@@ -268,7 +269,7 @@ function run() {
             const previousResult = yield exec.getExecOutput(command);
             const diff = compareDiagnostics(newResult.stdout, previousResult.stdout, treshold);
             core.info(diff);
-            if (comment) {
+            if (shouldLeaveComment) {
                 if (!githubToken) {
                     throw new Error(`'github-token' is not set. Please give API token to send commit comment`);
                 }
@@ -303,9 +304,29 @@ const getCurrentPRID = () => {
     return pr.number;
 };
 const leaveComment = (body, token) => __awaiter(void 0, void 0, void 0, function* () {
-    core.debug(`Sending comment:\n${body}`);
     const repoMetadata = getCurrentRepoMetadata();
     const client = github.getOctokit(token);
+    const { data: comments } = yield client.rest.issues.listComments({
+        owner: repoMetadata.owner.login,
+        repo: repoMetadata.name,
+        issue_number: getCurrentPRID()
+    });
+    const previousComment = comments.find(c => {
+        var _a;
+        return (_a = c.body) === null || _a === void 0 ? void 0 : _a.includes('Diagnostics Comparison');
+    });
+    if (previousComment) {
+        core.debug(`Updating comment:\n${body}`);
+        yield client.rest.issues.updateComment({
+            owner: repoMetadata.owner.login,
+            repo: repoMetadata.name,
+            comment_id: previousComment.id,
+            issue_number: getCurrentPRID(),
+            body
+        });
+        return previousComment;
+    }
+    core.debug(`Sending new comment:\n${body}`);
     const { data: createCommentResponse } = yield client.rest.issues.createComment({
         owner: repoMetadata.owner.login,
         repo: repoMetadata.name,
@@ -337,7 +358,7 @@ function parseDiagnostics(input) {
             else {
                 diagnostics[key] = {
                     value: parseInt(value),
-                    unit: 'none'
+                    unit: ''
                 };
             }
         }
@@ -348,7 +369,8 @@ function compareDiagnostics(prev, current, threshold) {
     const previousDiagnostics = parseDiagnostics(prev);
     const currentDiagnostics = parseDiagnostics(current);
     core.debug(JSON.stringify(currentDiagnostics));
-    let markdown = '## Comparing Diagnostics:\n\n';
+    let markdown = '## Diagnostics Comparison:\n\n';
+    markdown += `<details><summary>Click to expand</summary>\n\n`;
     markdown += '| Metric | Previous | New | Status |\n';
     markdown += '| --- | --- | --- | --- |\n';
     for (const key in currentDiagnostics) {
@@ -360,7 +382,7 @@ function compareDiagnostics(prev, current, threshold) {
         if (isNaN(diffPercentage))
             diffPercentage = 0;
         const shouldApplyThreshold = key.toLowerCase().includes('time');
-        const isWithinThreshold = Math.abs(diff) <= threshold;
+        const isWithinThreshold = Math.abs(diff) * 1000 <= threshold;
         let status = '';
         if (diff === 0) {
             status = '±';
@@ -371,8 +393,9 @@ function compareDiagnostics(prev, current, threshold) {
         else {
             status = diff > 0 ? '▲' : '▼';
         }
-        markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage.toFixed(2)}%) |\n`;
+        markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage > 0 ? '+' : ''}${diffPercentage.toFixed(2)}%) |\n`;
     }
+    markdown += '</details>\n\n';
     return markdown;
 }
 

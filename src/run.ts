@@ -7,10 +7,12 @@ import {detect} from 'detect-package-manager'
 export async function run(): Promise<void> {
   core.info('Starting...')
 
-  const comment = core.getInput('comment') === 'true'
   const baseBranch = core.getInput('base-branch') || 'main'
   const treshold = parseInt(core.getInput('treshold')) || 300 // ms
   const customCommand = core.getInput('custom-command') || undefined
+  const extended = core.getInput('extended') === 'true'
+
+  const shouldLeaveComment = core.getInput('leave-comment') === 'true'
   const githubToken: string | undefined =
     core.getInput('github-token') || undefined
 
@@ -21,7 +23,9 @@ export async function run(): Promise<void> {
 
     const command = customCommand
       ? customCommand
-      : `${tsc} --noEmit --extendedDiagnostics --incremental false`
+      : `${tsc} ${
+          extended ? '--extendedDiagnostics' : '--diagnostics'
+        } --incremental false`
 
     const newResult = await exec.getExecOutput(command)
     if (!newResult.stdout.includes('Check time') && customCommand) {
@@ -57,7 +61,7 @@ export async function run(): Promise<void> {
     )
 
     core.info(diff)
-    if (comment) {
+    if (shouldLeaveComment) {
       if (!githubToken) {
         throw new Error(
           `'github-token' is not set. Please give API token to send commit comment`
@@ -96,10 +100,31 @@ const getCurrentPRID = () => {
 }
 
 const leaveComment = async (body: string, token: string) => {
-  core.debug(`Sending comment:\n${body}`)
-
   const repoMetadata = getCurrentRepoMetadata()
   const client = github.getOctokit(token)
+  const {data: comments} = await client.rest.issues.listComments({
+    owner: repoMetadata.owner.login,
+    repo: repoMetadata.name,
+    issue_number: getCurrentPRID()
+  })
+
+  const previousComment = comments.find(c => {
+    return c.body?.includes('Diagnostics Comparison')
+  })
+
+  if (previousComment) {
+    core.debug(`Updating comment:\n${body}`)
+    await client.rest.issues.updateComment({
+      owner: repoMetadata.owner.login,
+      repo: repoMetadata.name,
+      comment_id: previousComment.id,
+      issue_number: getCurrentPRID(),
+      body
+    })
+    return previousComment
+  }
+
+  core.debug(`Sending new comment:\n${body}`)
   const {data: createCommentResponse} = await client.rest.issues.createComment({
     owner: repoMetadata.owner.login,
     repo: repoMetadata.name,
@@ -113,7 +138,7 @@ const leaveComment = async (body: string, token: string) => {
 type Diagnostics = {
   [key: string]: {
     value: number
-    unit: 's' | 'none' | 'K'
+    unit: 's' | '' | 'K'
   }
 }
 
@@ -139,7 +164,7 @@ function parseDiagnostics(input: string): Diagnostics {
       } else {
         diagnostics[key] = {
           value: parseInt(value),
-          unit: 'none'
+          unit: ''
         }
       }
     }
@@ -157,7 +182,8 @@ function compareDiagnostics(
   const currentDiagnostics = parseDiagnostics(current)
   core.debug(JSON.stringify(currentDiagnostics))
 
-  let markdown = '## Comparing Diagnostics:\n\n'
+  let markdown = '## Diagnostics Comparison:\n\n'
+  markdown += `<details><summary>Click to expand</summary>\n\n`
   markdown += '| Metric | Previous | New | Status |\n'
   markdown += '| --- | --- | --- | --- |\n'
 
@@ -174,7 +200,7 @@ function compareDiagnostics(
     if (isNaN(diffPercentage)) diffPercentage = 0
 
     const shouldApplyThreshold = key.toLowerCase().includes('time')
-    const isWithinThreshold = Math.abs(diff) <= threshold
+    const isWithinThreshold = Math.abs(diff) * 1000 <= threshold
 
     let status = ''
     if (diff === 0) {
@@ -187,8 +213,12 @@ function compareDiagnostics(
 
     markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${
       currentValue.value
-    }${currentValue.unit} | ${status} (${diffPercentage.toFixed(2)}%) |\n`
+    }${currentValue.unit} | ${status} (${
+      diffPercentage > 0 ? '+' : ''
+    }${diffPercentage.toFixed(2)}%) |\n`
   }
+
+  markdown += '</details>\n\n'
 
   return markdown
 }
