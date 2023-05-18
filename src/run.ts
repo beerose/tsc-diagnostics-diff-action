@@ -111,7 +111,10 @@ const leaveComment = async (body: string, token: string) => {
 }
 
 type Diagnostics = {
-  [key: string]: number
+  [key: string]: {
+    value: number
+    unit: 's' | 'none' | 'K'
+  }
 }
 
 function parseDiagnostics(input: string): Diagnostics {
@@ -121,9 +124,24 @@ function parseDiagnostics(input: string): Diagnostics {
   for (const line of lines) {
     const parts = line.split(':')
     if (parts.length === 2) {
-      // Convert all time values to milliseconds for comparison
-      const value = parseFloat(parts[1]) * (parts[1].includes('s') ? 1000 : 1)
-      diagnostics[parts[0].trim()] = value
+      const key = parts[0].trim()
+      const value = parts[1].trim()
+      if (value.endsWith('s')) {
+        diagnostics[key] = {
+          value: parseFloat(value.replace('s', '')),
+          unit: 's'
+        }
+      } else if (value.endsWith('K')) {
+        diagnostics[key] = {
+          value: parseInt(value.replace('K', '')),
+          unit: 'K'
+        }
+      } else {
+        diagnostics[key] = {
+          value: parseInt(value),
+          unit: 'none'
+        }
+      }
     }
   }
 
@@ -131,42 +149,43 @@ function parseDiagnostics(input: string): Diagnostics {
 }
 
 function compareDiagnostics(
-  first: string,
-  second: string,
+  prev: string,
+  current: string,
   threshold: number
 ): string {
-  const firstDiagnostics = parseDiagnostics(first)
-  const secondDiagnostics = parseDiagnostics(second)
-
-  core.debug(`${firstDiagnostics}, ${secondDiagnostics}`)
+  const previousDiagnostics = parseDiagnostics(prev)
+  const currentDiagnostics = parseDiagnostics(current)
 
   let markdown = '## Comparing Diagnostics:\n\n'
-  markdown += '| Metric | Difference | Status |\n'
-  markdown += '| --- | --- | --- |\n'
+  markdown += '| Metric | Previous | New | Status |\n'
+  markdown += '| --- | --- | --- | --- |\n'
 
-  for (const key in {...firstDiagnostics, ...secondDiagnostics}) {
-    const firstValue = firstDiagnostics[key] || 0
-    const secondValue = secondDiagnostics[key] || 0
+  for (const key in currentDiagnostics) {
+    const prevValue = previousDiagnostics[key] || 0
+    const currentValue = currentDiagnostics[key] || 0
 
-    const diff = secondValue - firstValue
-    let diffPercentage = firstValue !== 0 ? (diff / firstValue) * 100 : 0
+    const diff = currentValue.value - prevValue.value
+
+    let diffPercentage =
+      currentValue.value !== 0 ? (diff / currentValue.value) * 100 : 0
 
     if (isNaN(diffPercentage)) diffPercentage = 0
 
     const shouldApplyThreshold = key.toLowerCase().includes('time')
     const isWithinThreshold = Math.abs(diff) <= threshold
 
-    if (!shouldApplyThreshold || (shouldApplyThreshold && !isWithinThreshold)) {
-      let status = diff > 0 ? '▲' : '▼'
-      if (diff === 0) status = '±'
-      markdown += `| ${key} | ${diff.toFixed(2)} (${diffPercentage.toFixed(
-        2
-      )}%) | ${status} |\n`
+    let status = ''
+    if (diff === 0) {
+      status = '±'
+    } else if (shouldApplyThreshold && isWithinThreshold) {
+      status = '±'
     } else {
-      markdown += `| ${key} | ${diff.toFixed(2)} (${diffPercentage.toFixed(
-        2
-      )}%) | ± |\n`
+      status = diff > 0 ? '▲' : '▼'
     }
+
+    markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${
+      currentValue.value
+    }${currentValue.unit} | ${status} (${diffPercentage.toFixed(2)}%) |\n`
   }
 
   return markdown
