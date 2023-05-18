@@ -5,7 +5,7 @@
   "description": "TypeScript extendedDiagnostics diff action",
   "main": "lib/main.js",
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --extendedDiagnostics --incremental false",
     "build": "tsc",
     "format": "prettier --write '**/*.ts'",
     "format-check": "prettier --check '**/*.ts'",

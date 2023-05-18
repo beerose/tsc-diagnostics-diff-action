@@ -241,7 +241,13 @@ function run() {
             const bin = (yield exec.getExecOutput('yarn bin')).stdout.trim();
             const tsc = `${bin}/tsc`;
             core.debug(`tsc: ${tsc}, bin: ${bin}`);
-            const newResult = yield exec.getExecOutput(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} --noEmit --extendedDiagnostics --incremental false`);
+            const command = customCommand
+                ? customCommand
+                : `${tsc} --noEmit --extendedDiagnostics --incremental false`;
+            const newResult = yield exec.getExecOutput(command);
+            if (!newResult.stdout.includes('Check time') && customCommand) {
+                throw new Error(`Custom command '${customCommand}' does not output '--extendedDiagnostics' or '--diagnostics' flag. Please add it to your command.`);
+            }
             yield git.fetch(githubToken, baseBranch);
             yield git.cmd([], 'checkout', baseBranch);
             const packageManager = yield (0, detect_package_manager_1.detect)();
@@ -259,8 +265,7 @@ function run() {
             else {
                 throw new Error(`Package manager ${packageManager} is not supported. Please use yarn, npm or pnpm`);
             }
-            const previousResult = yield exec.getExecOutput(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} --noEmit --extendedDiagnostics --incremental false`);
-            core.debug(`${previousResult.stdout}, ${newResult.stdout}`);
+            const previousResult = yield exec.getExecOutput(command);
             const diff = compareDiagnostics(newResult.stdout, previousResult.stdout, treshold);
             core.info(diff);
             if (comment) {

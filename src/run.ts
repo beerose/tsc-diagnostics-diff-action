@@ -19,11 +19,16 @@ export async function run(): Promise<void> {
     const tsc = `${bin}/tsc`
     core.debug(`tsc: ${tsc}, bin: ${bin}`)
 
-    const newResult = await exec.getExecOutput(
-      `${
-        customCommand ?? tsc
-      } --noEmit --extendedDiagnostics --incremental false`
-    )
+    const command = customCommand
+      ? customCommand
+      : `${tsc} --noEmit --extendedDiagnostics --incremental false`
+
+    const newResult = await exec.getExecOutput(command)
+    if (!newResult.stdout.includes('Check time') && customCommand) {
+      throw new Error(
+        `Custom command '${customCommand}' does not output '--extendedDiagnostics' or '--diagnostics' flag. Please add it to your command.`
+      )
+    }
 
     await git.fetch(githubToken, baseBranch)
     await git.cmd([], 'checkout', baseBranch)
@@ -43,13 +48,7 @@ export async function run(): Promise<void> {
       )
     }
 
-    const previousResult = await exec.getExecOutput(
-      `${
-        customCommand ?? tsc
-      } --noEmit --extendedDiagnostics --incremental false`
-    )
-
-    core.debug(`${previousResult.stdout}, ${newResult.stdout}`)
+    const previousResult = await exec.getExecOutput(command)
 
     const diff = compareDiagnostics(
       newResult.stdout,
