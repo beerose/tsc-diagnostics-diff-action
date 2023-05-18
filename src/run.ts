@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import * as cp from 'child_process'
+import * as exec from '@actions/exec'
 import * as git from './git'
 
 export async function run(): Promise<void> {
@@ -8,34 +8,33 @@ export async function run(): Promise<void> {
 
   const comment = core.getInput('comment') === 'true'
   const baseBranch = core.getInput('base-branch') || 'main'
-  const flags = core.getInput('flags') || '--noEmit --incremental false'
   const treshold = parseInt(core.getInput('treshold')) || 300 // ms
   const customCommand = core.getInput('custom-command') || undefined
   const githubToken: string | undefined =
     core.getInput('github-token') || undefined
 
   try {
-    const tsc = `${cp.execSync('yarn bin').toString().trim()}/tsc`
+    const bin = (await exec.getExecOutput('yarn bin')).stdout.trim()
+    const tsc = `${bin}/tsc`
+    core.debug(`tsc: ${tsc}, bin: ${bin}`)
 
-    const newResult = cp.execSync(
-      `${customCommand ?? tsc} ${flags} --extendedDiagnostics`,
-      {
-        stdio: 'pipe'
-      }
+    const newResult = await exec.getExecOutput(
+      `${
+        customCommand ?? tsc
+      } --noEmit --extendedDiagnostics --incremental false`
     )
 
     await git.fetch(githubToken, baseBranch)
     await git.cmd([], 'checkout', baseBranch)
 
     // should run install
-    const previousResult = cp.execSync(
-      `${customCommand ?? tsc} ${flags} --extendedDiagnostics`,
-      {
-        stdio: 'pipe'
-      }
+    const previousResult = await exec.getExecOutput(
+      `${
+        customCommand ?? tsc
+      } --noEmit --extendedDiagnostics --incremental false`
     )
 
-    core.debug(`${previousResult}, ${newResult}`)
+    core.debug(`${previousResult.toString()}, ${newResult.toString()}`)
 
     const diff = compareDiagnostics(
       newResult.toString(),

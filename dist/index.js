@@ -226,28 +226,26 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const cp = __importStar(__nccwpck_require__(2081));
+const exec = __importStar(__nccwpck_require__(1514));
 const git = __importStar(__nccwpck_require__(3374));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting...');
         const comment = core.getInput('comment') === 'true';
         const baseBranch = core.getInput('base-branch') || 'main';
-        const flags = core.getInput('flags') || '--noEmit --incremental false';
         const treshold = parseInt(core.getInput('treshold')) || 300; // ms
         const customCommand = core.getInput('custom-command') || undefined;
         const githubToken = core.getInput('github-token') || undefined;
         try {
-            const tsc = `${cp.execSync('yarn bin').toString().trim()}/tsc`;
-            const newResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`, {
-                stdio: 'pipe'
-            });
+            const bin = (yield exec.getExecOutput('yarn bin')).stdout.trim();
+            const tsc = `${bin}/tsc`;
+            core.debug(`tsc: ${tsc}, bin: ${bin}`);
+            const newResult = yield exec.getExecOutput(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} --noEmit --extendedDiagnostics --incremental false`);
             yield git.fetch(githubToken, baseBranch);
             yield git.cmd([], 'checkout', baseBranch);
-            const previousResult = cp.execSync(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} ${flags} --extendedDiagnostics`, {
-                stdio: 'pipe'
-            });
-            core.debug(`${previousResult}, ${newResult}`);
+            // should run install
+            const previousResult = yield exec.getExecOutput(`${customCommand !== null && customCommand !== void 0 ? customCommand : tsc} --noEmit --extendedDiagnostics --incremental false`);
+            core.debug(`${previousResult.toString()}, ${newResult.toString()}`);
             const diff = compareDiagnostics(newResult.toString(), previousResult.toString(), treshold);
             core.info(diff);
             if (comment) {
