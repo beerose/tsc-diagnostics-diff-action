@@ -23,7 +23,7 @@ export async function run(): Promise<void> {
 
     const command = customCommand
       ? customCommand
-      : `${tsc} --noEmit ${
+      : `${tsc} ${
           extended ? '--extendedDiagnostics' : '--diagnostics'
         } --incremental false`
 
@@ -186,12 +186,14 @@ function compareDiagnostics(
     } else if (shouldApplyThreshold && isWithinThreshold) {
       status = '±'
     } else {
-      status = diff > 0 ? '▲' : '▼'
+      status = diff > 0 ? '🔺' : '▼'
     }
 
     markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${
       currentValue.value
-    }${currentValue.unit} | ${status} (${diffPercentage.toFixed(2)}%) |\n`
+    }${currentValue.unit} | ${status} (${
+      diffPercentage > 0 && '+'
+    }${diffPercentage.toFixed(2)}%) |\n`
   }
 
   return markdown

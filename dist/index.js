@@ -244,7 +244,7 @@ function run() {
             core.debug(`tsc: ${tsc}, bin: ${bin}`);
             const command = customCommand
                 ? customCommand
-                : `${tsc} --noEmit ${extended ? '--extendedDiagnostics' : '--diagnostics'} --incremental false`;
+                : `${tsc} ${extended ? '--extendedDiagnostics' : '--diagnostics'} --incremental false`;
             const newResult = yield exec.getExecOutput(command);
             if (!newResult.stdout.includes('Check time') && customCommand) {
                 throw new Error(`Custom command '${customCommand}' does not output '--extendedDiagnostics' or '--diagnostics' flag. Please add it to your command.`);
@@ -370,9 +370,9 @@ function compareDiagnostics(prev, current, threshold) {
             status = '±';
         }
         else {
-            status = diff > 0 ? '▲' : '▼';
+            status = diff > 0 ? '🔺' : '▼';
         }
-        markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage.toFixed(2)}%) |\n`;
+        markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage > 0 && '+'}${diffPercentage.toFixed(2)}%) |\n`;
     }
     return markdown;
 }
