@@ -1,6 +1,10 @@
 name: 'TSC Diagnostics Diff'
 description: 'Compare TypeScript Compiler Performance'
-author: 'Aleksandra Sikora'
+author: 'Aleksandra Sikora <https://github.com/beerose>'
+branding:
+  icon: activity
+  color: purple
+
 inputs:
   base-branch:
     required: false
