@@ -235,7 +235,7 @@ function run() {
         const baseBranch = core.getInput('base-branch') || 'main';
         const treshold = parseInt(core.getInput('treshold')) || 300; // ms
         const customCommand = core.getInput('custom-command') || undefined;
-        const extended = Boolean(core.getInput('extended')) || false;
+        const extended = core.getInput('extended') === 'true';
         const shouldLeaveComment = core.getInput('leave-comment') === 'true';
         const githubToken = core.getInput('github-token') || undefined;
         try {
@@ -392,7 +392,7 @@ function compareDiagnostics(prev, current, threshold) {
         else {
             status = diff > 0 ? '🔺' : '▼';
         }
-        markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage > 0 ? '+' : '-'}${diffPercentage.toFixed(2)}%) |\n`;
+        markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage > 0 ? '+' : ''}${diffPercentage.toFixed(2)}%) |\n`;
     }
     return markdown;
 }
