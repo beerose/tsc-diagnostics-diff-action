@@ -57,7 +57,8 @@ export async function run(): Promise<void> {
     const diff = compareDiagnostics(
       previousResult.stdout,
       newResult.stdout,
-      treshold
+      treshold,
+      extended
     )
 
     core.info(diff)
@@ -67,7 +68,7 @@ export async function run(): Promise<void> {
           `'github-token' is not set. Please give API token to send commit comment`
         )
       }
-      await leaveComment(diff, githubToken)
+      await leaveComment(diff, githubToken, extended)
     }
 
     core.info('Finished!')
@@ -99,7 +100,7 @@ const getCurrentPRID = () => {
   return pr.number
 }
 
-const leaveComment = async (body: string, token: string) => {
+const leaveComment = async (body: string, token: string, extended = false) => {
   const repoMetadata = getCurrentRepoMetadata()
   const client = github.getOctokit(token)
   const {data: comments} = await client.rest.issues.listComments({
@@ -109,7 +110,11 @@ const leaveComment = async (body: string, token: string) => {
   })
 
   const previousComment = comments.find(c => {
-    return c.body?.includes('Diagnostics Comparison')
+    return c.body?.includes(
+      extended
+        ? '## Extended Diagnostics Comparison'
+        : '## Diagnostics Comparison'
+    )
   })
 
   if (previousComment) {
@@ -176,13 +181,14 @@ function parseDiagnostics(input: string): Diagnostics {
 function compareDiagnostics(
   prev: string,
   current: string,
-  threshold: number
+  threshold: number,
+  extended = false
 ): string {
   const previousDiagnostics = parseDiagnostics(prev)
   const currentDiagnostics = parseDiagnostics(current)
   core.debug(JSON.stringify(currentDiagnostics))
 
-  let markdown = '## Diagnostics Comparison:\n\n'
+  let markdown = `## ${extended ? 'Extended' : ''} Diagnostics Comparison:\n\n`
   markdown += `<details><summary>Click to expand</summary>\n\n`
   markdown += '| Metric | Previous | New | Status |\n'
   markdown += '| --- | --- | --- | --- |\n'
@@ -221,52 +227,4 @@ function compareDiagnostics(
   markdown += '</details>\n\n'
 
   return markdown
-}
-
-// ref: https://github.com/microsoft/TypeScript/issues/52867
-const Database = () => ({
-  query: (query: string) => {
-    if (!query) return
-    return {
-      get: (args: Record<string, number>) => {
-        if (!args) return
-
-        return {
-          last_processed: '2019-01-01',
-          last_known_update: '2019-01-01'
-        }
-      }
-    }
-  }
-})
-
-type oneToNine = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-type zeroToNine = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-export type YYYY =
-  | `19${zeroToNine}${zeroToNine}`
-  | `20${zeroToNine}${zeroToNine}`
-type MM = `0${oneToNine}` | `1${0 | 1 | 2}`
-type DD = `${0}${oneToNine}` | `${1 | 2}${zeroToNine}` | `3${0 | 1}`
-export type FullDateString = `${YYYY}-${MM}-${DD}`
-
-export const ensureSubmissionsAreUptodate = async (cik: number) => {
-  const db = Database()
-  const processedDatesQuery = db.query(
-    `SELECT last_processed, last_known_update FROM edgar_submissions WHERE cik=$cik`
-  )
-  let last_processed: FullDateString | null = null
-  let last_known_update: FullDateString | null = null
-  const result = processedDatesQuery?.get({$cik: cik})
-
-  if (result) {
-    last_processed = result?.last_processed as FullDateString // this is the problem
-    last_known_update = result?.last_known_update as FullDateString // and this
-    return {last_processed, last_known_update}
-  }
-
-  return {
-    last_processed: null,
-    last_known_update:
-      last_known_update || new Date().toISOString().slice(0, 10)
-  }
 }
