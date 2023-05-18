@@ -347,10 +347,12 @@ function parseDiagnostics(input) {
 function compareDiagnostics(prev, current, threshold) {
     const previousDiagnostics = parseDiagnostics(prev);
     const currentDiagnostics = parseDiagnostics(current);
+    core.debug(JSON.stringify(currentDiagnostics));
     let markdown = '## Comparing Diagnostics:\n\n';
     markdown += '| Metric | Previous | New | Status |\n';
     markdown += '| --- | --- | --- | --- |\n';
     for (const key in currentDiagnostics) {
+        core.debug(`key: ${key}`);
         const prevValue = previousDiagnostics[key] || 0;
         const currentValue = currentDiagnostics[key] || 0;
         const diff = currentValue.value - prevValue.value;
