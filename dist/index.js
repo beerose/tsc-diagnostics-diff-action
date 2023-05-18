@@ -303,7 +303,7 @@ const getCurrentPRID = () => {
     }
     return pr.number;
 };
-const leaveComment = (body, token, extended = false) => __awaiter(void 0, void 0, void 0, function* () {
+const leaveComment = (body, token) => __awaiter(void 0, void 0, void 0, function* () {
     const repoMetadata = getCurrentRepoMetadata();
     const client = github.getOctokit(token);
     const { data: comments } = yield client.rest.issues.listComments({
@@ -313,9 +313,7 @@ const leaveComment = (body, token, extended = false) => __awaiter(void 0, void 0
     });
     const previousComment = comments.find(c => {
         var _a;
-        return (_a = c.body) === null || _a === void 0 ? void 0 : _a.includes(extended
-            ? '## Extended Diagnostics Comparison'
-            : '## Diagnostics Comparison');
+        return (_a = c.body) === null || _a === void 0 ? void 0 : _a.includes('Diagnostics Comparison');
     });
     if (previousComment) {
         core.debug(`Updating comment:\n${body}`);
@@ -371,7 +369,7 @@ function compareDiagnostics(prev, current, threshold, extended = false) {
     const previousDiagnostics = parseDiagnostics(prev);
     const currentDiagnostics = parseDiagnostics(current);
     core.debug(JSON.stringify(currentDiagnostics));
-    let markdown = `## ${extended ? 'Extended' : ''} Diagnostics Comparison:\n\n`;
+    let markdown = '## Diagnostics Comparison:\n\n';
     markdown += `<details><summary>Click to expand</summary>\n\n`;
     markdown += '| Metric | Previous | New | Status |\n';
     markdown += '| --- | --- | --- | --- |\n';
