@@ -100,10 +100,34 @@ const getCurrentPRID = () => {
 }
 
 const leaveComment = async (body: string, token: string) => {
-  core.debug(`Sending comment:\n${body}`)
-
   const repoMetadata = getCurrentRepoMetadata()
   const client = github.getOctokit(token)
+  const {data: comments} = await client.rest.issues.listComments({
+    owner: repoMetadata.owner.login,
+    repo: repoMetadata.name,
+    issue_number: getCurrentPRID()
+  })
+
+  const previousComment = comments.find(c => {
+    return (
+      c.body?.includes('## Diagnostics Comparison:') &&
+      c.user?.login === 'github-actions[bot]'
+    )
+  })
+
+  if (previousComment) {
+    core.debug(`Updating comment:\n${body}`)
+    await client.rest.issues.updateComment({
+      owner: repoMetadata.owner.login,
+      repo: repoMetadata.name,
+      comment_id: previousComment.id,
+      issue_number: getCurrentPRID(),
+      body
+    })
+    return previousComment
+  }
+
+  core.debug(`Sending new comment:\n${body}`)
   const {data: createCommentResponse} = await client.rest.issues.createComment({
     owner: repoMetadata.owner.login,
     repo: repoMetadata.name,

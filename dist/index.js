@@ -304,9 +304,30 @@ const getCurrentPRID = () => {
     return pr.number;
 };
 const leaveComment = (body, token) => __awaiter(void 0, void 0, void 0, function* () {
-    core.debug(`Sending comment:\n${body}`);
     const repoMetadata = getCurrentRepoMetadata();
     const client = github.getOctokit(token);
+    const { data: comments } = yield client.rest.issues.listComments({
+        owner: repoMetadata.owner.login,
+        repo: repoMetadata.name,
+        issue_number: getCurrentPRID()
+    });
+    const previousComment = comments.find(c => {
+        var _a, _b;
+        return (((_a = c.body) === null || _a === void 0 ? void 0 : _a.includes('## Diagnostics Comparison:')) &&
+            ((_b = c.user) === null || _b === void 0 ? void 0 : _b.login) === 'github-actions[bot]');
+    });
+    if (previousComment) {
+        core.debug(`Updating comment:\n${body}`);
+        yield client.rest.issues.updateComment({
+            owner: repoMetadata.owner.login,
+            repo: repoMetadata.name,
+            comment_id: previousComment.id,
+            issue_number: getCurrentPRID(),
+            body
+        });
+        return previousComment;
+    }
+    core.debug(`Sending new comment:\n${body}`);
     const { data: createCommentResponse } = yield client.rest.issues.createComment({
         owner: repoMetadata.owner.login,
         repo: repoMetadata.name,
