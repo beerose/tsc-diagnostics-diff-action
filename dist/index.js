@@ -370,6 +370,7 @@ function compareDiagnostics(prev, current, threshold) {
     const currentDiagnostics = parseDiagnostics(current);
     core.debug(JSON.stringify(currentDiagnostics));
     let markdown = '## Diagnostics Comparison:\n\n';
+    markdown += `<details><summary>Click to expand</summary>\n\n`;
     markdown += '| Metric | Previous | New | Status |\n';
     markdown += '| --- | --- | --- | --- |\n';
     for (const key in currentDiagnostics) {
@@ -394,6 +395,7 @@ function compareDiagnostics(prev, current, threshold) {
         }
         markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage > 0 ? '+' : ''}${diffPercentage.toFixed(2)}%) |\n`;
     }
+    markdown += '</details>\n\n';
     return markdown;
 }
 

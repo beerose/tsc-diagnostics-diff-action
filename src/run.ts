@@ -183,6 +183,7 @@ function compareDiagnostics(
   core.debug(JSON.stringify(currentDiagnostics))
 
   let markdown = '## Diagnostics Comparison:\n\n'
+  markdown += `<details><summary>Click to expand</summary>\n\n`
   markdown += '| Metric | Previous | New | Status |\n'
   markdown += '| --- | --- | --- | --- |\n'
 
@@ -216,6 +217,8 @@ function compareDiagnostics(
       diffPercentage > 0 ? '+' : ''
     }${diffPercentage.toFixed(2)}%) |\n`
   }
+
+  markdown += '</details>\n\n'
 
   return markdown
 }
