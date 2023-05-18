@@ -225,9 +225,12 @@ function compareDiagnostics(
 
 // ref: https://github.com/microsoft/TypeScript/issues/52867
 const Database = () => ({
-  query: () => {
+  query: (query: string) => {
+    if (!query) return
     return {
-      get: () => {
+      get: (args: Record<string, string>) => {
+        if (!args) return
+
         return {
           last_processed: '2019-01-01',
           last_known_update: '2019-01-01'
