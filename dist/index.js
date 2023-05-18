@@ -235,7 +235,7 @@ function run() {
         const baseBranch = core.getInput('base-branch') || 'main';
         const treshold = parseInt(core.getInput('treshold')) || 300; // ms
         const customCommand = core.getInput('custom-command') || undefined;
-        const extended = core.getInput('extended') || undefined;
+        const extended = Boolean(core.getInput('extended')) || false;
         const shouldLeaveComment = core.getInput('leave-comment') === 'true';
         const githubToken = core.getInput('github-token') || undefined;
         try {
@@ -312,9 +312,8 @@ const leaveComment = (body, token) => __awaiter(void 0, void 0, void 0, function
         issue_number: getCurrentPRID()
     });
     const previousComment = comments.find(c => {
-        var _a, _b;
-        return (((_a = c.body) === null || _a === void 0 ? void 0 : _a.includes('## Diagnostics Comparison:')) &&
-            ((_b = c.user) === null || _b === void 0 ? void 0 : _b.login) === 'github-actions[bot]');
+        var _a;
+        return (_a = c.body) === null || _a === void 0 ? void 0 : _a.includes('Diagnostics Comparison');
     });
     if (previousComment) {
         core.debug(`Updating comment:\n${body}`);
@@ -382,7 +381,7 @@ function compareDiagnostics(prev, current, threshold) {
         if (isNaN(diffPercentage))
             diffPercentage = 0;
         const shouldApplyThreshold = key.toLowerCase().includes('time');
-        const isWithinThreshold = Math.abs(diff) <= threshold;
+        const isWithinThreshold = Math.abs(diff) * 1000 <= threshold;
         let status = '';
         if (diff === 0) {
             status = '±';
@@ -393,7 +392,7 @@ function compareDiagnostics(prev, current, threshold) {
         else {
             status = diff > 0 ? '🔺' : '▼';
         }
-        markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage > 0 && '+'}${diffPercentage.toFixed(2)}%) |\n`;
+        markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage > 0 ? '+' : '-'}${diffPercentage.toFixed(2)}%) |\n`;
     }
     return markdown;
 }

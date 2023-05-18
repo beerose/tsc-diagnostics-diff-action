@@ -10,7 +10,7 @@ export async function run(): Promise<void> {
   const baseBranch = core.getInput('base-branch') || 'main'
   const treshold = parseInt(core.getInput('treshold')) || 300 // ms
   const customCommand = core.getInput('custom-command') || undefined
-  const extended = core.getInput('extended') || undefined
+  const extended = Boolean(core.getInput('extended')) || false
 
   const shouldLeaveComment = core.getInput('leave-comment') === 'true'
   const githubToken: string | undefined =
@@ -109,10 +109,7 @@ const leaveComment = async (body: string, token: string) => {
   })
 
   const previousComment = comments.find(c => {
-    return (
-      c.body?.includes('## Diagnostics Comparison:') &&
-      c.user?.login === 'github-actions[bot]'
-    )
+    return c.body?.includes('Diagnostics Comparison')
   })
 
   if (previousComment) {
@@ -202,7 +199,7 @@ function compareDiagnostics(
     if (isNaN(diffPercentage)) diffPercentage = 0
 
     const shouldApplyThreshold = key.toLowerCase().includes('time')
-    const isWithinThreshold = Math.abs(diff) <= threshold
+    const isWithinThreshold = Math.abs(diff) * 1000 <= threshold
 
     let status = ''
     if (diff === 0) {
@@ -216,7 +213,7 @@ function compareDiagnostics(
     markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${
       currentValue.value
     }${currentValue.unit} | ${status} (${
-      diffPercentage > 0 && '+'
+      diffPercentage > 0 ? '+' : '-'
     }${diffPercentage.toFixed(2)}%) |\n`
   }
 
