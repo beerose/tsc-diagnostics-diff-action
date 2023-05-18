@@ -22,6 +22,16 @@ jobs:
           leave-comment: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+  test-custom-command:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+      - run: |
+          npm install
+
       - uses: ./
         with:
           leave-comment: true
