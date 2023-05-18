@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: TSC Diagnostics Diff
-        uses: beerose/tsc-diagnostics-diff@v1
+        uses: beerose/tsc-diff-action@v0.0.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           leave-comment: true

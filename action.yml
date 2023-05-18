@@ -3,7 +3,7 @@ description: 'Compare TypeScript Compiler Performance'
 author: 'Aleksandra Sikora <https://github.com/beerose>'
 branding:
   icon: activity
-  color: purple
+  color: blue
 
 inputs:
   base-branch:
