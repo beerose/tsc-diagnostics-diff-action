@@ -228,7 +228,7 @@ const Database = () => ({
   query: (query: string) => {
     if (!query) return
     return {
-      get: (args: Record<string, string>) => {
+      get: (args: Record<string, number>) => {
         if (!args) return
 
         return {
@@ -256,21 +256,12 @@ export const ensureSubmissionsAreUptodate = async (cik: number) => {
   )
   let last_processed: FullDateString | null = null
   let last_known_update: FullDateString | null = null
-  const result = processedDatesQuery.get({$cik: cik})
+  const result = processedDatesQuery?.get({$cik: cik})
 
   if (result) {
-    last_processed = result.last_processed as FullDateString // this is the problem
-    last_known_update = result.last_known_update as FullDateString // and this
-    if (last_processed == null) {
-      return {last_processed, last_known_update}
-    }
-    if (
-      last_processed &&
-      last_known_update &&
-      last_processed >= last_known_update
-    ) {
-      return {last_processed, last_known_update}
-    }
+    last_processed = result?.last_processed as FullDateString // this is the problem
+    last_known_update = result?.last_known_update as FullDateString // and this
+    return {last_processed, last_known_update}
   }
 
   return {
