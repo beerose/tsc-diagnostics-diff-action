@@ -55,8 +55,8 @@ export async function run(): Promise<void> {
     const previousResult = await exec.getExecOutput(command)
 
     const diff = compareDiagnostics(
-      newResult.stdout,
       previousResult.stdout,
+      newResult.stdout,
       treshold
     )
 

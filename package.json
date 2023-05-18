@@ -1,5 +1,5 @@
 {
-  "name": "ts-diagnostics-diff-action",
+  "name": "tsc-diagnostics-diff",
   "version": "0.0.1",
   "private": true,
   "description": "TypeScript extendedDiagnostics diff action",

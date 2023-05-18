@@ -223,7 +223,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = void 0;
+exports.ensureSubmissionsAreUptodate = exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const exec = __importStar(__nccwpck_require__(1514));
@@ -267,7 +267,7 @@ function run() {
                 throw new Error(`Package manager ${packageManager} is not supported. Please use yarn, npm or pnpm`);
             }
             const previousResult = yield exec.getExecOutput(command);
-            const diff = compareDiagnostics(newResult.stdout, previousResult.stdout, treshold);
+            const diff = compareDiagnostics(previousResult.stdout, newResult.stdout, treshold);
             core.info(diff);
             if (shouldLeaveComment) {
                 if (!githubToken) {
@@ -398,6 +398,40 @@ function compareDiagnostics(prev, current, threshold) {
     markdown += '</details>\n\n';
     return markdown;
 }
+// ref: https://github.com/microsoft/TypeScript/issues/52867
+const Database = () => ({
+    query: (query) => {
+        if (!query)
+            return;
+        return {
+            get: (args) => {
+                if (!args)
+                    return;
+                return {
+                    last_processed: '2019-01-01',
+                    last_known_update: '2019-01-01'
+                };
+            }
+        };
+    }
+});
+const ensureSubmissionsAreUptodate = (cik) => __awaiter(void 0, void 0, void 0, function* () {
+    const db = Database();
+    const processedDatesQuery = db.query(`SELECT last_processed, last_known_update FROM edgar_submissions WHERE cik=$cik`);
+    let last_processed = null;
+    let last_known_update = null;
+    const result = processedDatesQuery === null || processedDatesQuery === void 0 ? void 0 : processedDatesQuery.get({ $cik: cik });
+    if (result) {
+        last_processed = result === null || result === void 0 ? void 0 : result.last_processed; // this is the problem
+        last_known_update = result === null || result === void 0 ? void 0 : result.last_known_update; // and this
+        return { last_processed, last_known_update };
+    }
+    return {
+        last_processed: null,
+        last_known_update: last_known_update || new Date().toISOString().slice(0, 10)
+    };
+});
+exports.ensureSubmissionsAreUptodate = ensureSubmissionsAreUptodate;
 
 
 /***/ }),
