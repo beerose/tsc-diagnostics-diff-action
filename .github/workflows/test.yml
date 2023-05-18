@@ -1,10 +1,6 @@
 name: 'action-test'
 on:
   pull_request:
-  push:
-    branches:
-      - main
-      - 'releases/*'
 
 jobs:
   test:
