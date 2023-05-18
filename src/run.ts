@@ -7,10 +7,12 @@ import {detect} from 'detect-package-manager'
 export async function run(): Promise<void> {
   core.info('Starting...')
 
-  const comment = core.getInput('comment') === 'true'
   const baseBranch = core.getInput('base-branch') || 'main'
   const treshold = parseInt(core.getInput('treshold')) || 300 // ms
   const customCommand = core.getInput('custom-command') || undefined
+  const extended = core.getInput('extended') || undefined
+
+  const shouldLeaveComment = core.getInput('leave-comment') === 'true'
   const githubToken: string | undefined =
     core.getInput('github-token') || undefined
 
@@ -21,7 +23,9 @@ export async function run(): Promise<void> {
 
     const command = customCommand
       ? customCommand
-      : `${tsc} --noEmit --extendedDiagnostics --incremental false`
+      : `${tsc} --noEmit ${
+          extended ? '--extendedDiagnostics' : '--diagnostics'
+        } --incremental false`
 
     const newResult = await exec.getExecOutput(command)
     if (!newResult.stdout.includes('Check time') && customCommand) {
@@ -57,7 +61,7 @@ export async function run(): Promise<void> {
     )
 
     core.info(diff)
-    if (comment) {
+    if (shouldLeaveComment) {
       if (!githubToken) {
         throw new Error(
           `'github-token' is not set. Please give API token to send commit comment`
@@ -113,7 +117,7 @@ const leaveComment = async (body: string, token: string) => {
 type Diagnostics = {
   [key: string]: {
     value: number
-    unit: 's' | 'none' | 'K'
+    unit: 's' | '' | 'K'
   }
 }
 
@@ -139,7 +143,7 @@ function parseDiagnostics(input: string): Diagnostics {
       } else {
         diagnostics[key] = {
           value: parseInt(value),
-          unit: 'none'
+          unit: ''
         }
       }
     }
@@ -157,7 +161,7 @@ function compareDiagnostics(
   const currentDiagnostics = parseDiagnostics(current)
   core.debug(JSON.stringify(currentDiagnostics))
 
-  let markdown = '## Comparing Diagnostics:\n\n'
+  let markdown = '## Diagnostics Comparison:\n\n'
   markdown += '| Metric | Previous | New | Status |\n'
   markdown += '| --- | --- | --- | --- |\n'
 

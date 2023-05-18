@@ -232,10 +232,11 @@ const detect_package_manager_1 = __nccwpck_require__(7756);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting...');
-        const comment = core.getInput('comment') === 'true';
         const baseBranch = core.getInput('base-branch') || 'main';
         const treshold = parseInt(core.getInput('treshold')) || 300; // ms
         const customCommand = core.getInput('custom-command') || undefined;
+        const extended = core.getInput('extended') || undefined;
+        const shouldLeaveComment = core.getInput('leave-comment') === 'true';
         const githubToken = core.getInput('github-token') || undefined;
         try {
             const bin = (yield exec.getExecOutput('yarn bin')).stdout.trim();
@@ -243,7 +244,7 @@ function run() {
             core.debug(`tsc: ${tsc}, bin: ${bin}`);
             const command = customCommand
                 ? customCommand
-                : `${tsc} --noEmit --extendedDiagnostics --incremental false`;
+                : `${tsc} --noEmit ${extended ? '--extendedDiagnostics' : '--diagnostics'} --incremental false`;
             const newResult = yield exec.getExecOutput(command);
             if (!newResult.stdout.includes('Check time') && customCommand) {
                 throw new Error(`Custom command '${customCommand}' does not output '--extendedDiagnostics' or '--diagnostics' flag. Please add it to your command.`);
@@ -268,7 +269,7 @@ function run() {
             const previousResult = yield exec.getExecOutput(command);
             const diff = compareDiagnostics(newResult.stdout, previousResult.stdout, treshold);
             core.info(diff);
-            if (comment) {
+            if (shouldLeaveComment) {
                 if (!githubToken) {
                     throw new Error(`'github-token' is not set. Please give API token to send commit comment`);
                 }
@@ -337,7 +338,7 @@ function parseDiagnostics(input) {
             else {
                 diagnostics[key] = {
                     value: parseInt(value),
-                    unit: 'none'
+                    unit: ''
                 };
             }
         }
@@ -348,7 +349,7 @@ function compareDiagnostics(prev, current, threshold) {
     const previousDiagnostics = parseDiagnostics(prev);
     const currentDiagnostics = parseDiagnostics(current);
     core.debug(JSON.stringify(currentDiagnostics));
-    let markdown = '## Comparing Diagnostics:\n\n';
+    let markdown = '## Diagnostics Comparison:\n\n';
     markdown += '| Metric | Previous | New | Status |\n';
     markdown += '| --- | --- | --- | --- |\n';
     for (const key in currentDiagnostics) {
