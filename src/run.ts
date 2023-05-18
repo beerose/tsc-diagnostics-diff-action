@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import * as exec from '@actions/exec'
 import * as git from './git'
+import {detect} from 'detect-package-manager'
 
 export async function run(): Promise<void> {
   core.info('Starting...')
@@ -27,18 +28,32 @@ export async function run(): Promise<void> {
     await git.fetch(githubToken, baseBranch)
     await git.cmd([], 'checkout', baseBranch)
 
-    // should run install
+    const packageManager = await detect()
+    core.debug(`package manager: ${packageManager}`)
+    core.debug(`installing dependencies with ${packageManager}`)
+    if (packageManager === 'yarn') {
+      await exec.exec('yarn')
+    } else if (packageManager === 'npm') {
+      await exec.exec('npm', ['install'])
+    } else if (packageManager === 'pnpm') {
+      await exec.exec('pnpm', ['install'])
+    } else {
+      throw new Error(
+        `Package manager ${packageManager} is not supported. Please use yarn, npm or pnpm`
+      )
+    }
+
     const previousResult = await exec.getExecOutput(
       `${
         customCommand ?? tsc
       } --noEmit --extendedDiagnostics --incremental false`
     )
 
-    core.debug(`${previousResult.toString()}, ${newResult.toString()}`)
+    core.debug(`${previousResult.stdout}, ${newResult.stdout}`)
 
     const diff = compareDiagnostics(
-      newResult.toString(),
-      previousResult.toString(),
+      newResult.stdout,
+      previousResult.stdout,
       treshold
     )
 

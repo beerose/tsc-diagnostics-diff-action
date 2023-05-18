@@ -33,7 +33,8 @@
   "dependencies": {
     "@actions/core": "^1.10.0",
     "@actions/exec": "^1.1.1",
-    "@actions/github": "^5.1.1"
+    "@actions/github": "^5.1.1",
+    "detect-package-manager": "^2.0.1"
   },
   "devDependencies": {
     "@types/node": "^18.16.3",
