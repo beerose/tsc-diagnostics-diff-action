@@ -208,7 +208,7 @@ function compareDiagnostics(
     } else if (shouldApplyThreshold && isWithinThreshold) {
       status = '±'
     } else {
-      status = diff > 0 ? '🔺' : '▼'
+      status = diff > 0 ? '▲' : '▼'
     }
 
     markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${

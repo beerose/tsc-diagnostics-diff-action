@@ -391,7 +391,7 @@ function compareDiagnostics(prev, current, threshold) {
             status = '±';
         }
         else {
-            status = diff > 0 ? '🔺' : '▼';
+            status = diff > 0 ? '▲' : '▼';
         }
         markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${currentValue.value}${currentValue.unit} | ${status} (${diffPercentage > 0 ? '+' : ''}${diffPercentage.toFixed(2)}%) |\n`;
     }
