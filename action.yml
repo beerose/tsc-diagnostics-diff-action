@@ -10,9 +10,13 @@ inputs:
     required: false
     description: 'Additional TSC flags'
     default: '--noEmit --incremental false'
-  skip-comment:
+  custom-command:
     required: false
-    description: 'Skip posting a comment on your PR'
+    description: 'Allows to override the default type check command. E.g.: yarn typecheck'
+    default: 'npx tsc'
+  comment:
+    required: false
+    description: 'Indicates whether the action should leave a comment on a PR. Enabling this requires providing github-token'
     default: false
   github-token:
     required: false

@@ -1,32 +1,63 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import * as cp from 'child_process'
+import * as exec from '@actions/exec'
 import * as git from './git'
+import {detect} from 'detect-package-manager'
 
 export async function run(): Promise<void> {
   core.info('Starting...')
 
-  const skipComment = core.getInput('skip-comment') === 'true'
+  const comment = core.getInput('comment') === 'true'
   const baseBranch = core.getInput('base-branch') || 'main'
-  const flags = core.getInput('flags') || '--noEmit --incremental false'
   const treshold = parseInt(core.getInput('treshold')) || 300 // ms
+  const customCommand = core.getInput('custom-command') || undefined
   const githubToken: string | undefined =
     core.getInput('github-token') || undefined
 
   try {
-    const newResult = cp.execSync(`tsc ${flags} --extendedDiagnostics`)
+    const bin = (await exec.getExecOutput('yarn bin')).stdout.trim()
+    const tsc = `${bin}/tsc`
+    core.debug(`tsc: ${tsc}, bin: ${bin}`)
 
+    const command = customCommand
+      ? customCommand
+      : `${tsc} --noEmit --extendedDiagnostics --incremental false`
+
+    const newResult = await exec.getExecOutput(command)
+    if (!newResult.stdout.includes('Check time') && customCommand) {
+      throw new Error(
+        `Custom command '${customCommand}' does not output '--extendedDiagnostics' or '--diagnostics' flag. Please add it to your command.`
+      )
+    }
+
+    await git.fetch(githubToken, baseBranch)
     await git.cmd([], 'checkout', baseBranch)
-    const previousResult = cp.execSync('tsc ${flags} --extendedDiagnostics')
+
+    const packageManager = await detect()
+    core.debug(`package manager: ${packageManager}`)
+    core.debug(`installing dependencies with ${packageManager}`)
+    if (packageManager === 'yarn') {
+      await exec.exec('yarn')
+    } else if (packageManager === 'npm') {
+      await exec.exec('npm', ['install'])
+    } else if (packageManager === 'pnpm') {
+      await exec.exec('pnpm', ['install'])
+    } else {
+      throw new Error(
+        `Package manager ${packageManager} is not supported. Please use yarn, npm or pnpm`
+      )
+    }
+
+    const previousResult = await exec.getExecOutput(command)
 
     const diff = compareDiagnostics(
-      newResult.toString(),
-      previousResult.toString(),
+      newResult.stdout,
+      previousResult.stdout,
       treshold
     )
 
     core.info(diff)
-    if (!skipComment) {
+    if (comment) {
       if (!githubToken) {
         throw new Error(
           `'github-token' is not set. Please give API token to send commit comment`
@@ -80,7 +111,10 @@ const leaveComment = async (body: string, token: string) => {
 }
 
 type Diagnostics = {
-  [key: string]: number
+  [key: string]: {
+    value: number
+    unit: 's' | 'none' | 'K'
+  }
 }
 
 function parseDiagnostics(input: string): Diagnostics {
@@ -90,9 +124,24 @@ function parseDiagnostics(input: string): Diagnostics {
   for (const line of lines) {
     const parts = line.split(':')
     if (parts.length === 2) {
-      // Convert all time values to milliseconds for comparison
-      const value = parseFloat(parts[1]) * (parts[1].includes('s') ? 1000 : 1)
-      diagnostics[parts[0].trim()] = value
+      const key = parts[0].trim()
+      const value = parts[1].trim()
+      if (value.endsWith('s')) {
+        diagnostics[key] = {
+          value: parseFloat(value.replace('s', '')),
+          unit: 's'
+        }
+      } else if (value.endsWith('K')) {
+        diagnostics[key] = {
+          value: parseInt(value.replace('K', '')),
+          unit: 'K'
+        }
+      } else {
+        diagnostics[key] = {
+          value: parseInt(value),
+          unit: 'none'
+        }
+      }
     }
   }
 
@@ -100,40 +149,45 @@ function parseDiagnostics(input: string): Diagnostics {
 }
 
 function compareDiagnostics(
-  first: string,
-  second: string,
+  prev: string,
+  current: string,
   threshold: number
 ): string {
-  const firstDiagnostics = parseDiagnostics(first)
-  const secondDiagnostics = parseDiagnostics(second)
+  const previousDiagnostics = parseDiagnostics(prev)
+  const currentDiagnostics = parseDiagnostics(current)
+  core.debug(JSON.stringify(currentDiagnostics))
 
   let markdown = '## Comparing Diagnostics:\n\n'
-  markdown += '| Metric | Difference | Status |\n'
-  markdown += '| --- | --- | --- |\n'
+  markdown += '| Metric | Previous | New | Status |\n'
+  markdown += '| --- | --- | --- | --- |\n'
 
-  for (const key in {...firstDiagnostics, ...secondDiagnostics}) {
-    const firstValue = firstDiagnostics[key] || 0
-    const secondValue = secondDiagnostics[key] || 0
+  for (const key in currentDiagnostics) {
+    core.debug(`key: ${key}`)
+    const prevValue = previousDiagnostics[key] || 0
+    const currentValue = currentDiagnostics[key] || 0
 
-    const diff = secondValue - firstValue
-    let diffPercentage = firstValue !== 0 ? (diff / firstValue) * 100 : 0
+    const diff = currentValue.value - prevValue.value
+
+    let diffPercentage =
+      currentValue.value !== 0 ? (diff / currentValue.value) * 100 : 0
 
     if (isNaN(diffPercentage)) diffPercentage = 0
 
     const shouldApplyThreshold = key.toLowerCase().includes('time')
     const isWithinThreshold = Math.abs(diff) <= threshold
 
-    if (!shouldApplyThreshold || (shouldApplyThreshold && !isWithinThreshold)) {
-      let status = diff > 0 ? '▲' : '▼'
-      if (diff === 0) status = '±'
-      markdown += `| ${key} | ${diff.toFixed(2)} (${diffPercentage.toFixed(
-        2
-      )}%) | ${status} |\n`
+    let status = ''
+    if (diff === 0) {
+      status = '±'
+    } else if (shouldApplyThreshold && isWithinThreshold) {
+      status = '±'
     } else {
-      markdown += `| ${key} | ${diff.toFixed(2)} (${diffPercentage.toFixed(
-        2
-      )}%) | ± |\n`
+      status = diff > 0 ? '▲' : '▼'
     }
+
+    markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${
+      currentValue.value
+    }${currentValue.unit} | ${status} (${diffPercentage.toFixed(2)}%) |\n`
   }
 
   return markdown

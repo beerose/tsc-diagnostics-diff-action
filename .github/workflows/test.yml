@@ -7,20 +7,17 @@ on:
       - 'releases/*'
 
 jobs:
-  build: # make sure build/ci work properly
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - run: |
-          npm install
-      - run: |
-          npm run all
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+      - run: |
+          npm install
+
       - uses: ./
         with:
-          milliseconds: 1000
-          skip-comment: true
+          comment: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
