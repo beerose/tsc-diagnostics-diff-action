@@ -8,7 +8,7 @@ export async function run(): Promise<void> {
   core.info('Starting...')
 
   const baseBranch = core.getInput('base-branch') || 'main'
-  const treshold = parseInt(core.getInput('treshold')) || 300 // ms
+  const treshold = parseInt(core.getInput('treshold'), 10) || 300 // ms
   const customCommand = core.getInput('custom-command') || undefined
   const extended = core.getInput('extended') === 'true'
 
@@ -163,12 +163,12 @@ function parseDiagnostics(input: string): Diagnostics {
         }
       } else if (value.endsWith('K')) {
         diagnostics[key] = {
-          value: parseInt(value.replace('K', '')),
+          value: parseInt(value.replace('K', ''), 10),
           unit: 'K'
         }
       } else {
         diagnostics[key] = {
-          value: parseInt(value),
+          value: parseInt(value, 10),
           unit: ''
         }
       }
