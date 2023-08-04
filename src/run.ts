@@ -23,13 +23,11 @@ export async function run(): Promise<void> {
     let command = customCommand
     if (!command) {
       core.debug(`Getting location of tsc binary`)
-      const bin =
-        packageManager !== 'npm'
-          ? (await exec.getExecOutput(`${packageManager} bin`)).stdout.trim()
-          : (await exec.getExecOutput(`npm prefix`)).stdout.trim() +
-            '/node_modules/.bin'
-      const tsc = `${bin}/tsc`
-      core.debug(`tsc: ${tsc}, bin: ${bin}`)
+      const prefix = (
+        await exec.getExecOutput(`${packageManager} prefix`)
+      ).stdout.trim()
+      const tsc = `${prefix}/node_modules/.bin/tsc`
+      core.debug(`tsc: ${tsc}, bin: ${prefix}`)
 
       command = `${tsc} ${
         extended ? '--extendedDiagnostics' : '--diagnostics'
