@@ -17,15 +17,22 @@ export async function run(): Promise<void> {
     core.getInput('github-token') || undefined
 
   try {
-    const bin = (await exec.getExecOutput('yarn bin')).stdout.trim()
-    const tsc = `${bin}/tsc`
-    core.debug(`tsc: ${tsc}, bin: ${bin}`)
+    const packageManager = await detect()
+    core.debug(`package manager: ${packageManager}`)
 
-    const command = customCommand
-      ? customCommand
-      : `${tsc} ${
-          extended ? '--extendedDiagnostics' : '--diagnostics'
-        } --incremental false`
+    let command = customCommand
+    if (!command) {
+      core.debug(`Getting location of tsc binary`)
+      const prefix = (
+        await exec.getExecOutput(`${packageManager} prefix`)
+      ).stdout.trim()
+      const tsc = `${prefix}/node_modules/.bin/tsc`
+      core.debug(`tsc: ${tsc}, bin: ${prefix}`)
+
+      command = `${tsc} ${
+        extended ? '--extendedDiagnostics' : '--diagnostics'
+      } --incremental false`
+    }
 
     const newResult = await exec.getExecOutput(command)
     if (!newResult.stdout.includes('Check time') && customCommand) {
@@ -37,8 +44,6 @@ export async function run(): Promise<void> {
     await git.fetch(githubToken, baseBranch)
     await git.cmd([], 'checkout', baseBranch)
 
-    const packageManager = await detect()
-    core.debug(`package manager: ${packageManager}`)
     core.debug(`installing dependencies with ${packageManager}`)
     if (packageManager === 'yarn') {
       await exec.exec('yarn')
