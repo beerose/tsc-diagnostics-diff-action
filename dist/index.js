@@ -239,20 +239,22 @@ function run() {
         const shouldLeaveComment = core.getInput('leave-comment') === 'true';
         const githubToken = core.getInput('github-token') || undefined;
         try {
-            const bin = (yield exec.getExecOutput('yarn bin')).stdout.trim();
-            const tsc = `${bin}/tsc`;
-            core.debug(`tsc: ${tsc}, bin: ${bin}`);
-            const command = customCommand
-                ? customCommand
-                : `${tsc} ${extended ? '--extendedDiagnostics' : '--diagnostics'} --incremental false`;
+            const packageManager = yield (0, detect_package_manager_1.detect)();
+            core.debug(`package manager: ${packageManager}`);
+            let command = customCommand;
+            if (!command) {
+                core.debug(`Getting location of tsc binary`);
+                const prefix = (yield exec.getExecOutput(`${packageManager} prefix`)).stdout.trim();
+                const tsc = `${prefix}/node_modules/.bin/tsc`;
+                core.debug(`tsc: ${tsc}, bin: ${prefix}`);
+                command = `${tsc} ${extended ? '--extendedDiagnostics' : '--diagnostics'} --incremental false`;
+            }
             const newResult = yield exec.getExecOutput(command);
             if (!newResult.stdout.includes('Check time') && customCommand) {
                 throw new Error(`Custom command '${customCommand}' does not output '--extendedDiagnostics' or '--diagnostics' flag. Please add it to your command.`);
             }
             yield git.fetch(githubToken, baseBranch);
             yield git.cmd([], 'checkout', baseBranch);
-            const packageManager = yield (0, detect_package_manager_1.detect)();
-            core.debug(`package manager: ${packageManager}`);
             core.debug(`installing dependencies with ${packageManager}`);
             if (packageManager === 'yarn') {
                 yield exec.exec('yarn');
